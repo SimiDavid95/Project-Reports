@@ -1,0 +1,298 @@
+---
+title: "Experiment on the Number of New Leaves that Sprout on a Money Tree in a Month"
+author: "Juan Acosta"
+date: "April 25, 2022 (modified)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The money tree (also known by its botanical classification, *Pachira aquatica*) is a type of foliage plant that is characterized by its palm-like leaves, which grow 5 at a time [1]. The money tree thrives on plentiful sunlight, regular fertilization and watering, and plentiful room to grow its roots [1].
+
+The objective of this experiment is to study the effect of hours exposed to direct sunlight per day, if fertilizer was used or not, the number of times watered in a month, and the plant pot size (collectively, the factors) on the number of new leaves that sprout on a money tree in a month (the response). The factors previously stated are all important for the growth and well-being of a plant in general, and so with this replicated fractional factorial experiment, I would like to observe if varying the levels of these factors will have a significant effect on the number of new leaves that sprout on a money tree in a month.
+
+The hypothesis is that yes, the factors will have a significant effect on the response, because all of the factors are vital to the health and well-being of any potted plant, including the money tree.
+
+# Materials and Methods
+
+## Experimental Design and Data
+
+```{r, echo=FALSE, include=FALSE}
+
+# Load in necessary libraries
+library(tidyverse)
+library(plyr)
+library(BsMD)
+library(FrF2)
+
+# Set a seed to guarantee data reproducibility
+set.seed(1000664186)
+
+# Number of runs
+n = 8
+
+# Create the initial data table (without the replicate run responses for now).
+# This table will have the levels of the 4 factors coded as such:
+#
+# hours_exposed_direct_sunlight = -1 (3 hours) or 1 (6 hours)
+# used_fertilizer = -1 (No) or 1 (Yes)
+# num_hours_watered_in_month = -1 (2 times) or 1 (4 times)
+# plant_pot_size = -1 (Small) or 1 (Large)
+#
+experiment_data <- tibble(run_1 = c(1:n),
+                          run_2 = c((n+1):(2*n)),
+                          run_3 = c((2*n+1):(3*n)),
+                          run_4 = c((3*n+1):(4*n)),
+                          hours_exposed_direct_sunlight = rep(c(-1, 1), times = 4),
+                          used_fertilizer = rep(c(-1, -1, 1, 1), times = 2),
+                          num_times_watered_in_month = c(rep(-1, times = 4), rep(1, times = 4)),
+                          plant_pot_size = c(-1, 1, 1, -1, 1, -1, -1, 1))
+
+# Simulate the response data for y_1 (which entails runs 1-8):
+experiment_data <-
+  experiment_data %>%
+  rowwise() %>%
+  mutate(y_1 = case_when(
+    # Run 1
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 2, sd = 1)),
+    # Run 2
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 3
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 4
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 5
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 6
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 7
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 8
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 6, sd = 1))))
+
+# Simulate the response data for y_2 (which entails runs 9-16):
+experiment_data <-
+  experiment_data %>%
+  rowwise() %>%
+  mutate(y_2 = case_when(
+    # Run 9
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 2, sd = 1)),
+    # Run 10
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 11
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 12
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 13
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 14
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 15
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 16
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 6, sd = 1))))
+
+# Simulate the response data for y_3 (which entails runs 17-24):
+experiment_data <-
+  experiment_data %>%
+  rowwise() %>%
+  mutate(y_3 = case_when(
+    # Run 17
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 2, sd = 1)),
+    # Run 18
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 19
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 20
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 21
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 22
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 23
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 24
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 6, sd = 1))))
+
+# Simulate the response data for y_4 (which entails runs 25-32):
+experiment_data <-
+  experiment_data %>%
+  rowwise() %>%
+  mutate(y_4 = case_when(
+    # Run 25
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 2, sd = 1)),
+    # Run 26
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 27
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 28
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == -1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 29
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 30
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == -1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 31
+    hours_exposed_direct_sunlight == -1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == -1 ~ 5*round(rnorm(n = 1, mean = 4, sd = 1)),
+    # Run 32
+    hours_exposed_direct_sunlight == 1 & used_fertilizer == 1 & num_times_watered_in_month == 1 & 
+      plant_pot_size == 1 ~ 5*round(rnorm(n = 1, mean = 6, sd = 1))))
+
+# Since the runs have been replicated 4 times, consolidate them into runs 1-8 by taking the mean of the responses for 
+# each row in the experiment_data table, rounding them to the nearest 5 (since the leaves of a money tree grow 5 at a 
+# time), and assigning them to a new column called y. The run_1, run_2, run_3, and run_4 columns will be replaced with
+# a new column called run, that will be the consolidated runs 1-8:
+#
+experiment_data <-
+  experiment_data %>%
+  mutate(y = (y_1 + y_2 + y_3 + y_4) / 4) %>%
+  mutate(y = plyr::round_any(y, 5, f = round)) %>%
+  mutate(run = run_1) %>%
+  select(run, hours_exposed_direct_sunlight, used_fertilizer, num_times_watered_in_month, plant_pot_size, y)
+
+# Rename the factor columns as follows:
+#
+# A = hours_exposed_direct_sunlight
+# B = used_fertilizer
+# C = num_times_watered_in_month
+# D = plant_pot_size
+#
+experiment_data <-
+  experiment_data %>%
+  dplyr::rename(A = hours_exposed_direct_sunlight,
+                B = used_fertilizer,
+                C = num_times_watered_in_month,
+                D = plant_pot_size)
+
+```
+
+```{r, echo = FALSE}
+
+# Create a table for the factors and their levels, including the coding for the levels:
+factor_levels_table <- tibble(factor_name = c("A. Hours Exposed to Direct Sunlight Per Day",
+                                              "B. Was Fertilizer Used?",
+                                              "C. Number of Times Watered in a Month",
+                                              "D. Size of Plant Pot"),
+                              factor_level = c("3 (-), 6 (+)",
+                                               "No (-), Yes (+)",
+                                               "2 (-), 4 (+)",
+                                               "Small (-), Large (+)"))
+
+knitr::kable(factor_levels_table, format = "pipe", col.names = c("Factor", "Level"), align = "lc", caption = "Factors and level codes.")
+
+```
+
+\newpage
+
+```{r, echo = FALSE}
+
+# Create a table for the experiment data:
+knitr::kable(experiment_data, format = "pipe", col.names = c("run", "A", "B", "C", "D", "y"), align = "cccccc", caption = "Experiment data.")
+
+```
+
+The factor levels were coded as shown in Table 1, and Table 2 shows the data generated for this experiment. The design of this experiment is a $2^{4-1}$ fractional factorial design. There were 8 runs replicated 4 times for a total of 32 runs.
+
+The factor level combinations for factors `A`, `B` and `C` were determined using the model matrix for a $2^3$ factorial design, while the signs for factor `D` were determined by multiplying the signs of the first three factors for each run. The resulting factor level combinations for each run are known as the settings.
+
+The responses for each run were obtained via simulation, randomly generated from a Normal distribution using the following parameters:
+
+* If the settings of the run summed up to -4, the response was randomly generated from a Normal distribution with a mean of 2 and a standard deviation of 1. This is because the settings of the run are not conducive to the optimal health of the money tree, and so it is less likely that many new leaves will sprout. The response is then rounded to the nearest whole number, and then multiplied by 5, since the leaves of a money tree grow 5 at a time.
+
+* If the settings of the run summed up to 0, the response was randomly generated from a Normal distribution with a mean of 4 and a standard deviation of 1. This is because the settings of the run are semi-conducive to the optimal health of the money tree, and so it is moderately likely that many new leaves will sprout. The response is then rounded to the nearest whole number, and then multiplied by 5, since the leaves of a money tree grow 5 at a time.
+
+* If the settings of the run summed up to 4, the response was randomly generated from a Normal distribution with a mean of 6 and a standard deviation of 1. This is because the settings of the run are conducive to the optimal health of the money tree, and so it is more likely that many new leaves will sprout. The response is then rounded to the nearest whole number, and then multiplied by 5, since the leaves of a money tree grow 5 at a time.
+
+Since the replicated runs have corresponding settings (for example, run 1 has the same settings as runs 9, 17 and 25), the replicated runs can be consolidated into 8 runs, where the responses of each corresponding replicated run are summed up and the result is divided by 4 to get the average response, rounded to the nearest 5, since the leaves of a money tree grow 5 at a time. These responses can be seen in the `y` column of Table 1.
+
+\newpage
+
+## Statistical Analysis
+
+In order to run statistical analysis on the data, a linear model will be employed to obtain estimates for each of the main and interaction effects, unless the effects are aliased, in which case they will show a value of `NA`. The factorial effect estimates are shown in Table 3 below.
+
+```{r, echo = FALSE}
+
+# Linear model for factorial effect estimates
+fact.lm <- lm(y ~ A*B*C*D, data = experiment_data)
+fact_estimates <- round(2*fact.lm$coefficients, 2)
+knitr::kable(fact_estimates, caption = "Factorial effect estimates.")
+
+```
+
+# Results and Discussion
+
+```{r, echo = FALSE, results='hide', fig.keep='all', out.width="90%", out.height="90%"}
+
+# Fit an ANOVA model
+fact.aov <- aov(y ~ A*B*C*D, data = experiment_data)
+
+# Arrange the plots in a two-by-two grid
+par(mfrow = c(2,2),
+    mar = c(2.7, 4, 2.7, 2) + 0.1)
+
+# Normal plot
+DanielPlot(fact.lm, half = FALSE, autolab = FALSE, cex.lab = 0.7, cex.fac = 0.8, cex.axis = 0.8, cex.main = 0.8,
+           main = "Plot 1.a: Normal Plot for y")
+
+# Half-Normal plot
+DanielPlot(fact.lm, half = TRUE, autolab = FALSE, cex.lab = 0.7, cex.fac = 0.8, cex.axis = 0.8, cex.main = 0.8,
+           main = "Plot 1.b: Half-Normal Plot for y")
+
+# Lenth plot
+LenthPlot(fact.aov, cex.fac = 0.8, cex.axis = 0.7, cex.lab = 0.7, cex.main = 0.8,
+          main = "Plot 1.c: Lenth Plot")
+
+```
+
+Plots 1.a and 1.b show the Normal and half-Normal plots for `y`, while Plot 1.c shows the Lenth plot for effect spikes. All of these plots test the significance of the factors and effects on the response.
+
+In the Normal plot, it appears that interactions `B:C`, `A:C`, `A:B`, and factors `A` and `B` possibly form a straight line. This means that factors `C` and `D`, which are off the straight line, are possibly significant.
+
+In the half-Normal plot, factor `B` is the only one in the upper right-hand corner, and so is possibly significant. However, it seems like factor `B` possibly lies on the straight line formed by interactions `A:C`, `B:C`, and factor `A`, and so may not be significant.
+
+In the Lenth plot, none of the factors or interactions spikes beyond the ME line, and so this shows that none of the factors or interactions are significant.
+
+From the observation above, it seems like there is mixed information being given. The Normal and half-Normal plots show that factors `B`, `C` and `D` may be significant. However, the Lenth plot shows that no factor or interaction is significant. Therefore, the most that can be said is that significance of the factors and interactions is inconclusive in this experiment. This is contrary to the initial hypothesis that all factors would be significant due to their importance in the care and maintenance of a potted plant, so these results were unexpected.
+
+# Conclusion
+
+In conclusion, this experiment was designed as a $2^{4-1}$ fractional factorial design in order to examine the significance of several plant-care-related factors on the number of new leaves that sprout from a money tree in a given month. The responses for each run were the average of 4 replicate run responses that were generated using varying parameters of the Normal distribution based on the settings of the factor level combinations of the given run. A linear model was created to determine the factorial effect estimates, and these estimates were then used to construct the Normal and half-Normal plots to test for importance of the factors and interactions. An ANOVA model was also fitted onto the linear model in order to construct the Lenth plot to test for significance of the factors and interactions. After analyzing all three plots, it could not be conclusively determined that any of the factors or interactions were significant to the response. This goes against the hypothesis that all factors and interactions were significant due to their importance in plant-care. Perhaps the experiment should be run again in the future using a modified fractional factorial design to determine if these same conclusions will hold, or if a different result will arise.
+
+## References
+
+1. *Money Tree Care*. Bloomscape. Retrieved December 7, 2021, from [https://bloomscape.com/plant-care-guide/money-tree/](https://bloomscape.com/plant-care-guide/money-tree/).
