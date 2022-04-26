@@ -15,7 +15,7 @@ library(dplyr)
 library(ggfortify)
 
 # Set seed.
-set.seed(1000664186)
+set.seed(314159)
 ```
 
 
@@ -261,16 +261,6 @@ Note that since `high_low_car_traffic` and `high_low_bike_ped_traffic` are categ
 \newpage
 
 # Results 
-
-```{r, include = FALSE}
-
-# Here you can load in and clean the data. 
-
-# You may need additional chunks.
-
-# I would recommend not including any of the Cleaning process output in the pdf - hence the "include = FALSE" at the start of the chunk. 
-
-```
 
 The variables used in the multiple linear regression model are the following:
 
